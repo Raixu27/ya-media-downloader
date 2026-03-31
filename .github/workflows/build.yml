@@ -34,7 +34,7 @@ jobs:
           script-name: main.py
           mode: onefile
           enable-plugins: pyside6
-          nofollow-import-to: yt_dlp.lazy_extractors
+          nofollow-import-to: yt_dlp.extractor.lazy_extractors
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
