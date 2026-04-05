@@ -72,14 +72,8 @@ class MainWindow(QMainWindow):
         self.items_label = QLabel("0 items added")
         self.form_layout.addRow(self.items_label)
 
-        self.item_scrolling_area = QScrollArea()
-        self.item_scrolling_content = QWidget()
         self.item_list = QListWidget()
-        self.item_scrolling_layout = QVBoxLayout(self.item_scrolling_area)
-        self.item_scrolling_layout.addWidget(self.item_list)
-        self.item_scrolling_area.setWidget(self.item_scrolling_content)
-
-        self.form_layout.addRow(self.item_scrolling_area)
+        self.form_layout.addRow(self.item_list)
 
         def add_label_to_scroller(label) -> None:
             self.item_scrolling_layout.addWidget(label)
