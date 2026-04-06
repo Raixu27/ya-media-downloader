@@ -1,4 +1,4 @@
-name: Build PySide6 App (Nuitka)
+name: Build with Nuitka
 
 on:
   push:
@@ -32,9 +32,10 @@ jobs:
         with:
           nuitka-version: main
           script-name: main.py
-          mode: onefile
+          mode: standalone
           enable-plugins: pyside6
           nofollow-import-to: yt_dlp.extractor.lazy_extractors
+          windows-icon-from-ico: assets/icon.ico
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
