@@ -13,7 +13,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f'{constants.APP_NAME} {constants.APP_VERSION}')
-        self.setWindowIcon(QIcon('icon.png'))
+        self.setWindowIcon(QIcon('assets/icon.png'))
         self.resize(800, 600)
         self.w = None
 
