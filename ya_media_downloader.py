@@ -1,6 +1,7 @@
 # | ---- Imports ---- | #
 
 import sys
+import subprocess
 from re import sub
 from yt_dlp import YoutubeDL
 from PySide6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QFormLayout, QVBoxLayout, QWidget, QLabel, QFileDialog, QMessageBox, QComboBox, QProgressBar, QListWidget)
@@ -108,6 +109,66 @@ class DownloadItems(QObject):
 
 # | ---- Functions ---- | #
 
+def install_ffmpeg() -> None:
+    """Hideous disgrace of a function that tries many package managers to install FFmpeg. Yikes!!!"""
+    # Supports windows (winget), macOS (homebrew), arch linux (pacman), debian/ubuntu.. (apt), fedora.. (dnf), void (xbps-install), alpine (apk), openSUSE (zypper)
+    try: # Windows
+        subprocess.check_call(['winget', 'install', 'ffmpeg'])
+        return
+    except Exception:
+        pass
+    try: # MacOS
+        subprocess.check_call(['brew', 'install', '-y', 'ffmpeg'])
+        return
+    except Exception:
+        pass
+    try: # Arch Linux
+        subprocess.check_call(['pkexec', 'pacman', '--noconfirm', '-S', 'ffmpeg'])
+        return
+    except Exception:
+        pass
+    try: # Debian Linux/Ubuntu
+        subprocess.check_call(['pkexec', 'apt', '-y', 'install', 'ffmpeg'])
+        return
+    except Exception:
+        pass
+    try: # Fedora Linux
+        subprocess.check_call(['pkexec', 'dnf', '--assumeyes', 'install', 'ffmpeg'])
+        return
+    except Exception:
+        pass
+    try: # Void Linux
+        subprocess.check_call(['pkexec', 'xbps-install', '-y', 'ffmpeg'])
+        return
+    except Exception:
+        pass
+    try: # Alpine Linux
+        subprocess.check_call(['pkexec', 'apk', '-y', 'add', 'ffmpeg'])
+        return
+    except Exception:
+        pass
+    try: # openSUSE
+        subprocess.check_call(['pkexec', 'zypper', '-n', 'install', 'ffmpeg'])
+        return
+    except Exception:
+        pass
+def ffmpeg_prompt() -> None:
+    result = QMessageBox.critical(
+        None,
+        "FFmpeg not installed",
+        "FFmpeg is required for this program's functionality. FFmpeg is not installed, do you want to try to automatically install FFmpeg with your package manager?",
+        QMessageBox.Yes | QMessageBox.No
+    )
+
+    if result == QMessageBox.Yes:
+        print("Yup, I want to install FFmpeg!")
+        try:
+            install_ffmpeg()
+        except:
+            print("Oh dear, I failed to install FFmpeg!")
+    else:
+        print("Nope, I don't want to install FFmpeg!")
+
 # | -- Manage items -- | #
     
 def remove_item(index, remove_highest) -> None:
@@ -152,6 +213,24 @@ def update_url(text) -> None:
     """Used for setting the url variable to the text in the UI."""
     global url
     url = text
+
+# | -- Checks -- | #
+
+def check_for_ffmpeg() -> None:
+    """Returns True if FFmpeg is installed and returns False otherwise."""
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        if result.returncode == 0:
+            return True
+        else:
+            return False
+    except FileNotFoundError:
+        return False
 
 # | ---- UI Signals ---- | #
 
@@ -203,6 +282,9 @@ def main() -> None:
     app = QApplication(sys.argv)
     main_window = ui.MainWindow()
     main_window.show()
+
+    if check_for_ffmpeg() == True:
+        ffmpeg_prompt()
 
     main_window.url_editor.textChanged.connect(update_url)
     main_window.url_button.clicked.connect(lambda: start_thread(AddItem()))
