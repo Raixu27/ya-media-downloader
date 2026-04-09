@@ -114,44 +114,54 @@ def install_ffmpeg() -> None:
     # Supports windows (winget), macOS (homebrew), arch linux (pacman), debian/ubuntu.. (apt), fedora.. (dnf), void (xbps-install), alpine (apk), openSUSE (zypper)
     try: # Windows
         subprocess.check_call(['winget', 'install', 'ffmpeg'])
+        main_window.show_info("FFmpeg successfully installed.")
         return
     except Exception:
         pass
     try: # MacOS
         subprocess.check_call(['brew', 'install', '-y', 'ffmpeg'])
+        main_window.show_info("FFmpeg successfully installed.")
         return
     except Exception:
         pass
     try: # Arch Linux
         subprocess.check_call(['pkexec', 'pacman', '--noconfirm', '-S', 'ffmpeg'])
+        main_window.show_info("FFmpeg successfully installed.")
         return
     except Exception:
         pass
     try: # Debian Linux/Ubuntu
         subprocess.check_call(['pkexec', 'apt', '-y', 'install', 'ffmpeg'])
+        main_window.show_info("FFmpeg successfully installed.")
         return
     except Exception:
         pass
     try: # Fedora Linux
         subprocess.check_call(['pkexec', 'dnf', '--assumeyes', 'install', 'ffmpeg'])
+        main_window.show_info("FFmpeg successfully installed.")
         return
     except Exception:
         pass
     try: # Void Linux
         subprocess.check_call(['pkexec', 'xbps-install', '-y', 'ffmpeg'])
+        main_window.show_info("FFmpeg successfully installed.")
         return
     except Exception:
         pass
     try: # Alpine Linux
         subprocess.check_call(['pkexec', 'apk', '-y', 'add', 'ffmpeg'])
+        main_window.show_info("FFmpeg successfully installed.")
         return
     except Exception:
         pass
     try: # openSUSE
         subprocess.check_call(['pkexec', 'zypper', '-n', 'install', 'ffmpeg'])
+        main_window.show_info("FFmpeg successfully installed.")
         return
     except Exception:
         pass
+
+    ui.show_error("FFmpeg failed to install. Your files may not download in the correct file format!")
 def ffmpeg_prompt() -> None:
     result = QMessageBox.critical(
         None,
@@ -166,6 +176,7 @@ def ffmpeg_prompt() -> None:
             install_ffmpeg()
         except:
             print("Oh dear, I failed to install FFmpeg!")
+            main_window.show_error("FFmpeg failed to install. Your files may not download in the correct file format!")
     else:
         print("Nope, I don't want to install FFmpeg!")
 
@@ -283,7 +294,7 @@ def main() -> None:
     main_window = ui.MainWindow()
     main_window.show()
 
-    if check_for_ffmpeg() == True:
+    if check_for_ffmpeg() == False:
         ffmpeg_prompt()
 
     main_window.url_editor.textChanged.connect(update_url)
