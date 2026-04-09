@@ -35,8 +35,8 @@ jobs:
           mode: standalone
           enable-plugins: pyside6
           nofollow-import-to: yt_dlp.extractor.lazy_extractors
-          include-data-files: ./assets=assets
-          windows-icon-from-ico: assets/icon.ico
+          include-data-dir: ./assets=assets
+          windows-icon-from-ico: ./assets/icon.ico
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
