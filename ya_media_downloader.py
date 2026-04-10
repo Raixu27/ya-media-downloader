@@ -16,10 +16,13 @@ import yt_dlp_wrapper
 
 main_window = None
 added_videos = {}
+num_of_added_items = 0
 url = ""
 output_directory = ""
 video_quality = "1080"
 file_format = "mp4"
+downloading = False
+adding = False
 
 # | ---- Classes ---- | #
 
@@ -32,14 +35,24 @@ class AddItem(QObject):
     error_message = Signal(str)
     info_message = Signal(str)
     update_progress_bar = Signal(int)
+    remove_item_signal = Signal(int, bool)
 
     @Slot()
     def run(self):
-        global url, added_videos
+        global url, added_videos, downloading, num_of_added_items, adding
         _url = url
+        url = ""
+        adding = True
+        if downloading == True:
+            adding = False
+            self.error_message.emit("Cannot add an item to the list because you are downloading items! Please wait for the items to finish downloading.")
+            self.finished.emit()
+            return
+
         try:
             info = yt_dlp_wrapper.get_info(_url)
         except:
+            adding = False
             self.error_message.emit(f"The URL ({_url}) couldn't be added. This could be caused by your IP being blocked by the website. Did you enter the correct URL?")
             self.finished.emit()
             return
@@ -60,8 +73,9 @@ class AddItem(QObject):
             self.add_item_to_list.emit(f"{yt_dlp_wrapper.get_title(info)} — By {yt_dlp_wrapper.get_uploader_id(info)} — Type: Playlist")
             print(f"Added {yt_dlp_wrapper.get_title(info)} — By {yt_dlp_wrapper.get_uploader_id(info)} — Type: Playlist")
 
+        num_of_added_items += 1
+        adding = False
         self.clear_item_list.emit()
-    
         self.finished.emit()
 
 class DownloadItems(QObject):
@@ -73,26 +87,38 @@ class DownloadItems(QObject):
     error_message = Signal(str)
     info_message = Signal(str)
     update_progress_bar = Signal(int)
+    remove_item_signal = Signal(int, bool)
 
     @Slot()
-    def run(self):  
-        global added_videos, output_directory, video_quality, file_format
+    def run(self):
+        global added_videos, output_directory, video_quality, file_format, downloading, adding
+        if downloading == True:
+            self.finished.emit()
+            return
+        if adding == True:
+            self.error_message.emit("Wait for the item(s) to finish adding before you try to download them.")
+            self.finished.emit()
+            return
+        downloading = True
 
         total_items = len(added_videos)
         downloaded_items = 0
 
         if total_items == 0:
             self.error_message.emit("You need to add videos before you try to download them.")
+            downloading = False
             self.finished.emit()
             return
 
         if output_directory == "":
             self.error_message.emit("No output directory was selected. Please select an output directory.")
+            downloading = False
             self.finished.emit()
             return
 
         if file_format == "gif" and (video_quality == "240" or video_quality == "144"):
             self.error_message.emit(".gif file format must be at least 360p. Please set your video quality to 360p or higher.")
+            downloading = False
             self.finished.emit()
             return
 
@@ -100,14 +126,17 @@ class DownloadItems(QObject):
             info = added_videos[i]
             _url = yt_dlp_wrapper.get_url(info)
             try:
+                self.update_progress_bar.emit(0)
                 yt_dlp_wrapper.download_video(_url, output_directory, video_quality, file_format, main_window)
                 downloaded_items += 1
             except:
                 self.error_message.emit(f"{yt_dlp_wrapper.get_title(info)} couldn't be downloaded. This item will be skipped and the others will still attempt to download.")
-            remove_item(i, True)
+            self.remove_item_signal.emit(i, True)
         self.clear_item_list.emit()
         self.update_progress_bar.emit(0)
         self.info_message.emit(f"{downloaded_items}/{total_items} downloaded successfully.")
+        added_videos.clear()
+        downloading = False
         self.finished.emit()
 
 # | ---- Functions ---- | #
@@ -185,9 +214,9 @@ def ffmpeg_prompt() -> None:
 
 # | -- Manage items -- | #
     
-def remove_item(index, remove_highest) -> None:
+def remove_item(index, remove_highest, delete_item_from_added_videos) -> None:
     """Removes the item from added_videos with the given index, also removes the item from the UI list."""
-    global added_videos
+    global added_videos, num_of_added_items
 
     if remove_highest == True:
         item = main_window.item_list.takeItem(0)
@@ -195,19 +224,32 @@ def remove_item(index, remove_highest) -> None:
         item = main_window.item_list.takeItem(index)
         
     del item
-    del added_videos[index]
+    num_of_added_items -= 1
+    if delete_item_from_added_videos == True:
+        del added_videos[index]
 
-    on_update_items_label(len(added_videos))
+    on_update_items_label(num_of_added_items)
 
 def remove_item_on_activate(item) -> None:
     """Removes an item when it is activated in the GUI."""
-    remove_item(main_window.item_list.row(item), False)
+    global downloading
+
+    if downloading == True:
+        main_window.show_error("Cannot remove an item from the list because you are downloading items! Please wait for the items to finish downloading.")
+        return
+
+    remove_item(main_window.item_list.row(item), False, True)
     
 # | -- Updating variables -- | #
 
 def update_output_directory() -> None:
     """Lets the user choose where to output downloaded videos."""
-    global output_directory
+    global output_directory, downloading
+
+    if downloading == True:
+        main_window.show_error("Cannot change the output directory because you are downloading items! Please wait for the items to finish downloading.")
+        return
+
     directory = QFileDialog.getExistingDirectory(main_window, main_window.tr("Open Directory"))
     if directory != "":
         output_directory = directory
@@ -231,6 +273,12 @@ def update_url(text) -> None:
 # | -- Menu bar actions -- | #
 
 def export_url_list() -> None:
+    global downloading
+
+    if downloading == True:
+        main_window.show_error("Cannot export the URL list because you are downloading items! Please wait for the items to finish downloading.")
+        return
+
     directory = QFileDialog.getExistingDirectory(main_window, main_window.tr("Open Directory"))
     if directory == "":
         main_window.show_error("The URL list was not exported because you did not select a directory to export the URL list to.")
@@ -247,7 +295,14 @@ def export_url_list() -> None:
         
 
 def import_url_list() -> None:
-    global url
+    global url, downloading, adding
+
+    if downloading == True:
+        main_window.show_error("Cannot import the URL list because you are downloading items! Please wait for the items to finish downloading.")
+        return
+    if adding == True:
+        main_window.show_error("Cannot import the URL list because you are already adding item(s). Please wait for the item(s) to finish adding.")
+        return
     exported_url_list = QFileDialog.getOpenFileName(main_window, main_window.tr("Open File"), "", main_window.tr("Text files (*.txt)"))
 
     if exported_url_list[0] == "":
@@ -331,6 +386,7 @@ def start_thread(worker):
     worker.error_message.connect(main_window.show_error)
     worker.info_message.connect(main_window.show_info)
     worker.update_progress_bar.connect(main_window.update_progress_bar)
+    worker.remove_item_signal.connect(lambda i, remove_highest: remove_item(i, remove_highest, False))
 
     # Cleanup
     worker.finished.connect(thread.quit)
