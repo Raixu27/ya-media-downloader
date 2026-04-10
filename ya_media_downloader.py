@@ -113,7 +113,7 @@ def install_ffmpeg() -> None:
     """Hideous disgrace of a function that tries many package managers to install FFmpeg. Yikes!!!"""
     # Supports windows (winget), macOS (homebrew), arch linux (pacman), debian/ubuntu.. (apt), fedora.. (dnf), void (xbps-install), alpine (apk), openSUSE (zypper)
     try: # Windows
-        subprocess.check_call(['winget', 'install', 'ffmpeg'])
+        subprocess.check_call(['winget', 'install', 'ffmpeg', '--accept-source-agreements', '--accept-package-agreements', '--disable-interactivity'])
         main_window.show_info("FFmpeg successfully installed.")
         return
     except Exception:
