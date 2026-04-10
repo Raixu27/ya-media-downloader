@@ -2,10 +2,12 @@
 
 import sys
 import subprocess
+import asyncio
 from re import sub
+from time import time
 from yt_dlp import YoutubeDL
 from PySide6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QFormLayout, QVBoxLayout, QWidget, QLabel, QFileDialog, QMessageBox, QComboBox, QProgressBar, QListWidget)
-from PySide6.QtCore import QThread, QObject, Signal, Slot
+from PySide6.QtCore import (QThread, QObject, Signal, Slot, QEventLoop)
 import constants
 import ui
 import yt_dlp_wrapper
@@ -34,10 +36,11 @@ class AddItem(QObject):
     @Slot()
     def run(self):
         global url, added_videos
+        _url = url
         try:
-            info = yt_dlp_wrapper.get_info(url)
+            info = yt_dlp_wrapper.get_info(_url)
         except:
-            self.error_message.emit(f"The URL ({url}) couldn't be added. This could be caused by your IP being blocked by the website. Did you enter the correct URL?")
+            self.error_message.emit(f"The URL ({_url}) couldn't be added. This could be caused by your IP being blocked by the website. Did you enter the correct URL?")
             self.finished.emit()
             return
         
@@ -164,7 +167,7 @@ def install_ffmpeg() -> None:
     ui.show_error("FFmpeg failed to install. Your files may not download in the correct file format!")
 def ffmpeg_prompt() -> None:
     result = QMessageBox.critical(
-        None,
+        main_window,
         "FFmpeg not installed",
         "FFmpeg is required for this program's functionality. FFmpeg is not installed, do you want to try to automatically install FFmpeg with your package manager?",
         QMessageBox.Yes | QMessageBox.No
@@ -225,6 +228,62 @@ def update_url(text) -> None:
     global url
     url = text
 
+# | -- Menu bar actions -- | #
+
+def export_url_list() -> None:
+    directory = QFileDialog.getExistingDirectory(main_window, main_window.tr("Open Directory"))
+    if directory == "":
+        main_window.show_error("The URL list was not exported because you did not select a directory to export the URL list to.")
+        return
+    
+    with open(f"{directory}/YA_url_list_{str(round(time()))}.txt", 'w') as exported_url_list:
+        url_string = f"Automatically generated with {constants.APP_NAME}\n{constants.APP_VERSION}"
+
+        for i in range(len(added_videos)):
+            url_string = f"{url_string}\n{yt_dlp_wrapper.get_url(added_videos[i])}"
+
+        exported_url_list.write(url_string)
+        main_window.show_info(f"The URL list was successfully exported at {exported_url_list.name}")
+        
+
+def import_url_list() -> None:
+    global url
+    exported_url_list = QFileDialog.getOpenFileName(main_window, main_window.tr("Open File"), "", main_window.tr("Text files (*.txt)"))
+
+    if exported_url_list[0] == "":
+        main_window.show_error("No URL list was imported because you didn't select a file to import.")
+        return
+
+    url = ""
+    main_window.item_list.clear()
+    added_videos.clear()
+    with open(exported_url_list[0], "r") as file:
+        lines = sum(1 for line in file)-2
+        if lines >= 10:
+            result = QMessageBox.warning(
+            main_window,
+            "Warning",
+            f"There are {lines} URLs to be imported. It is recommended to use a VPN or proxy when downloading this many items at the same time! Do you want to proceed?",
+            QMessageBox.Yes | QMessageBox.No
+            )
+            if result == QMessageBox.No:
+                main_window.show_info("The URL list was not imported.")
+                return
+
+        file.seek(0)
+        for i, line in enumerate(file):
+            if i < 2:
+                continue
+            url = line.strip()
+            loop = QEventLoop()
+            worker = start_thread(AddItem())
+            worker.finished.connect(loop.quit)
+
+            loop.exec()
+
+        main_window.show_info(f"The URL list was successfully imported.")
+        
+
 # | -- Checks -- | #
 
 def check_for_ffmpeg() -> None:
@@ -259,7 +318,7 @@ def on_update_items_label(result) -> None:
 threads = []
 workers = []
 
-def start_thread(worker) -> None:
+def start_thread(worker):
     thread = QThread()
 
     worker.moveToThread(thread)
@@ -284,6 +343,8 @@ def start_thread(worker) -> None:
 
     thread.start()
 
+    return worker
+
 # | ---- Main Function ---- | #
 
 def main() -> None:
@@ -304,5 +365,7 @@ def main() -> None:
     main_window.file_format_combo.currentTextChanged.connect(update_file_format)
     main_window.download_button.clicked.connect(lambda: start_thread(DownloadItems()))
     main_window.item_list.itemActivated.connect(remove_item_on_activate)
+    main_window.export_url_list.triggered.connect(export_url_list)
+    main_window.import_url_list.triggered.connect(import_url_list)
 
     sys.exit(app.exec())

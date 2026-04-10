@@ -1,7 +1,7 @@
 # | ---- Imports ---- | #
 
 import sys
-from PySide6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QFormLayout, QVBoxLayout, QWidget, QLabel, QFileDialog, QMessageBox, QComboBox, QProgressBar, QListWidget, QScrollArea)
+from PySide6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QFormLayout, QVBoxLayout, QWidget, QLabel, QFileDialog, QMessageBox, QComboBox, QProgressBar, QListWidget, QScrollArea, QToolBar)
 from PySide6.QtCore import (QThread, Qt)
 from PySide6.QtGui import (QIcon)
 import constants
@@ -86,10 +86,21 @@ class MainWindow(QMainWindow):
 
         self.form_layout.addRow(self.download_progress_bar)
 
-        # | Download button -- | #
+        # | -- Download button -- | #
 
         self.download_button = QPushButton("Download items")
         self.main_layout.addWidget(self.download_button)
+
+        # | -- Menu bar -- | #
+        self.menu_bar = self.menuBar()
+
+        self.file_menu = self.menu_bar.addMenu("File")
+
+        self.import_url_list = self.file_menu.addAction("Import URL list")
+        self.export_url_list = self.file_menu.addAction("Export URL list")
+        self.file_exit = self.file_menu.addAction("Exit")
+
+        self.file_exit.triggered.connect(self.close)
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
