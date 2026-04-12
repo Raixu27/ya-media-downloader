@@ -3,6 +3,7 @@
 import sys
 import subprocess
 import asyncio
+import webbrowser
 from re import sub
 from time import time
 from yt_dlp import YoutubeDL
@@ -409,7 +410,10 @@ def main() -> None:
 
     app = QApplication(sys.argv)
     main_window = ui.MainWindow()
+    about_window = ui.AboutWindow()
     main_window.show()
+
+    about_window = ui.AboutWindow()
 
     if check_for_ffmpeg() == False:
         ffmpeg_prompt()
@@ -423,5 +427,9 @@ def main() -> None:
     main_window.item_list.itemActivated.connect(remove_item_on_activate)
     main_window.export_url_list.triggered.connect(export_url_list)
     main_window.import_url_list.triggered.connect(import_url_list)
+    main_window.about_action.triggered.connect(about_window.show)
+
+    about_window.github_button.clicked.connect(lambda: webbrowser.open("https://github.com/Raixu27/ya-media-downloader"))
+    about_window.github_releases_button.clicked.connect(lambda: webbrowser.open("https://github.com/Raixu27/ya-media-downloader/releases"))
 
     sys.exit(app.exec())

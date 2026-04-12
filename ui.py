@@ -3,7 +3,7 @@
 import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QFormLayout, QVBoxLayout, QWidget, QLabel, QFileDialog, QMessageBox, QComboBox, QProgressBar, QListWidget, QScrollArea, QToolBar)
 from PySide6.QtCore import (QThread, Qt)
-from PySide6.QtGui import (QIcon)
+from PySide6.QtGui import (QIcon, QPixmap, QFont)
 import constants
 
 # | ---- Classes ---- | #
@@ -95,12 +95,14 @@ class MainWindow(QMainWindow):
         self.menu_bar = self.menuBar()
 
         self.file_menu = self.menu_bar.addMenu("File")
-
         self.import_url_list = self.file_menu.addAction("Import URL list")
         self.export_url_list = self.file_menu.addAction("Export URL list")
         self.file_exit = self.file_menu.addAction("Exit")
 
         self.file_exit.triggered.connect(self.close)
+
+        self.help_menu = self.menu_bar.addMenu("Help")
+        self.about_action = self.help_menu.addAction("About")
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
@@ -110,3 +112,41 @@ class MainWindow(QMainWindow):
     
     def update_progress_bar(self, value):
         self.download_progress_bar.setValue(value)
+    
+    def closeEvent(self, event):
+        for window in QApplication.topLevelWidgets():
+            window.close()
+        event.accept()
+
+class AboutWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(f'About {constants.APP_NAME}')
+        self.setWindowIcon(QIcon('assets/icon.png'))
+        self.setFixedSize(500, 250)
+        self.w = None
+
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setAlignment(Qt.AlignTop)
+
+        self.app_icon_label = QLabel(self)
+        self.app_icon_label.setFixedSize(80, 80)
+        self.app_icon_label.setScaledContents(True)
+        self.app_icon_pixmap = QPixmap('assets/icon.png')
+        self.app_icon_label.setPixmap(self.app_icon_pixmap)
+        self.main_layout.addWidget(self.app_icon_label, alignment=Qt.AlignTop | Qt.AlignLeft)
+
+        self.app_name_label = QLabel(constants.APP_NAME)
+        self.main_layout.addWidget(self.app_name_label)
+
+        self.app_version_label = QLabel(f"Version {constants.APP_VERSION}")
+        self.main_layout.addWidget(self.app_version_label)
+
+        self.app_description_label = QLabel("A stupid, simple Pyside6 app that downloads videos from websites\nwith quality and file format settings using yt-dlp.")
+        self.main_layout.addWidget(self.app_description_label)
+
+        self.github_button = QPushButton("View on GitHub")
+        self.main_layout.addWidget(self.github_button)
+
+        self.github_releases_button = QPushButton("View releases on GitHub")
+        self.main_layout.addWidget(self.github_releases_button)
