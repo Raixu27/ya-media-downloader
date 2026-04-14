@@ -309,12 +309,12 @@ def export_url_list() -> None:
         return
 
     with open(f"{directory}/YA_url_list_{str(round(time()))}.txt", 'w') as exported_url_list:
-        url_string = f"Automatically generated with {constants.APP_NAME}\n{constants.APP_VERSION}"
+        url_string = ""
 
         for i in range(len(added_videos)):
-            url_string = f"{url_string}\n{yt_dlp_wrapper.get_url(added_videos[i])}"
+            url_string = f"{url_string}{yt_dlp_wrapper.get_url(added_videos[i])}\n"
 
-        exported_url_list.write(url_string)
+        exported_url_list.write(url_string.strip())
         main_window.show_info(f"The URL list was successfully exported at {exported_url_list.name}")
 
 
@@ -340,7 +340,7 @@ def import_url_list() -> None:
     main_window.item_list.clear()
     added_videos.clear()
     with open(exported_url_list[0], "r") as file:
-        lines = sum(1 for line in file) - 2
+        lines = sum(1 for line in file)
         if lines >= 10:
             result = QMessageBox.warning(
                 main_window,
@@ -354,8 +354,6 @@ def import_url_list() -> None:
 
         file.seek(0)
         for i, line in enumerate(file):
-            if i < 2:
-                continue
             url = line.strip()
             loop = QEventLoop()
             worker = start_thread(AddItem())
