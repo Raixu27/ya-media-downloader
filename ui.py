@@ -1,15 +1,11 @@
-# | ---- Imports ---- | #
-
-import sys
-from PySide6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QFormLayout, QVBoxLayout, QWidget, QLabel, QFileDialog, QMessageBox, QComboBox, QProgressBar, QListWidget, QScrollArea, QToolBar)
-from PySide6.QtCore import (QThread, Qt)
-from PySide6.QtGui import (QIcon, QPixmap, QFont)
+from PySide6.QtWidgets import (QApplication, QMainWindow, QLineEdit, QPushButton, QFormLayout, QVBoxLayout, QWidget,
+                               QLabel, QMessageBox, QComboBox, QProgressBar, QListWidget)
+from PySide6.QtCore import Qt
+from PySide6.QtGui import (QIcon, QPixmap)
 import constants
 
-# | ---- Classes ---- | #
 
 class MainWindow(QMainWindow):
-    """The main window obviously..."""
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f'{constants.APP_NAME} {constants.APP_VERSION}')
@@ -24,9 +20,7 @@ class MainWindow(QMainWindow):
 
         self.main_layout = QVBoxLayout(self.central_widget)
         self.central_widget.setLayout(self.main_layout)
-
-        self.form_layout = QFormLayout(self.central_widget)
-
+        self.form_layout = QFormLayout()
         self.main_layout.addLayout(self.form_layout)
 
         # | -- URL Editor -- | #
@@ -49,7 +43,8 @@ class MainWindow(QMainWindow):
         # | -- Video quality -- | #
 
         self.quality_combo = QComboBox()
-        self.quality_combo.addItems(["UHD (2160p)", "QHD (1440p)", "FHD (1080p)", "HD (720p)", "480p", "360p", "240p", "144p"])
+        self.quality_combo.addItems(
+            ["UHD (2160p)", "QHD (1440p)", "FHD (1080p)", "HD (720p)", "480p", "360p", "240p", "144p"])
         self.quality_combo.setCurrentIndex(2)
 
         self.quality_info_label = QLabel("Video quality")
@@ -74,9 +69,6 @@ class MainWindow(QMainWindow):
 
         self.item_list = QListWidget()
         self.form_layout.addRow(self.item_list)
-
-        def add_label_to_scroller(label) -> None:
-            self.item_scrolling_layout.addWidget(label)
 
         # | -- Progress bar -- | #
         self.download_progress_bar = QProgressBar()
@@ -106,17 +98,18 @@ class MainWindow(QMainWindow):
 
     def show_error(self, message):
         QMessageBox.critical(self, "Error", message)
-    
+
     def show_info(self, message):
         QMessageBox.information(self, "Information", message)
-    
+
     def update_progress_bar(self, value):
         self.download_progress_bar.setValue(value)
-    
+
     def closeEvent(self, event):
         for window in QApplication.topLevelWidgets():
             window.close()
         event.accept()
+
 
 class AboutWindow(QWidget):
     def __init__(self):
@@ -127,14 +120,15 @@ class AboutWindow(QWidget):
         self.w = None
 
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setAlignment(Qt.AlignTop)
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.app_icon_label = QLabel(self)
         self.app_icon_label.setFixedSize(80, 80)
         self.app_icon_label.setScaledContents(True)
         self.app_icon_pixmap = QPixmap('assets/icon.png')
         self.app_icon_label.setPixmap(self.app_icon_pixmap)
-        self.main_layout.addWidget(self.app_icon_label, alignment=Qt.AlignTop | Qt.AlignLeft)
+        self.main_layout.addWidget(self.app_icon_label,
+                                   alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
         self.app_name_label = QLabel(constants.APP_NAME)
         self.main_layout.addWidget(self.app_name_label)
@@ -142,7 +136,8 @@ class AboutWindow(QWidget):
         self.app_version_label = QLabel(f"Version {constants.APP_VERSION}")
         self.main_layout.addWidget(self.app_version_label)
 
-        self.app_description_label = QLabel("A stupid, simple Pyside6 app that downloads videos from websites\nwith quality and file format settings using yt-dlp.")
+        self.app_description_label = QLabel(
+            "A stupid, simple Pyside6 app that downloads videos from websites\nwith quality and file format settings using yt-dlp.")
         self.main_layout.addWidget(self.app_description_label)
 
         self.github_button = QPushButton("View on GitHub")
