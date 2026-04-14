@@ -83,20 +83,20 @@ def download_video(url, output_directory, video_quality, file_format, main_windo
     ydl_opts = {
         "generic_video": {
             'progress_hooks': [progress_hook],
-            'format': 'bestvideo[height<=' + video_quality + ']+bestaudio/best',
+            'format': f'bestvideo[height<={video_quality}]+bestaudio/best',
             'merge_output_format': file_format,
-            'outtmpl': output_directory + '/%(title)s.%(ext)s',
+            'outtmpl': f'{output_directory}/%(title)s.%(ext)s',
             'quiet': True
         },
         "gif": {
             'progress_hooks': [progress_hook],
-            'format': 'bestvideo[height<=' + video_quality + ']',
+            'format': f'bestvideo[height<={video_quality}]',
             "postprocessors": [{
                 "key": "FFmpegVideoConvertor",
                 "preferedformat": "gif",
             }],
             'merge_output_format': 'gif',
-            'outtmpl': output_directory + '/%(title)s.%(ext)s',
+            'outtmpl': f'{output_directory}/%(title)s.%(ext)s',
             'quiet': True
         },
         "generic_audio": {
@@ -108,7 +108,7 @@ def download_video(url, output_directory, video_quality, file_format, main_windo
                 'preferredquality': '320',
             }],
             'merge_output_format': file_format,
-            'outtmpl': output_directory + '/%(title)s.%(ext)s',
+            'outtmpl': f'{output_directory}/%(title)s.%(ext)s',
             'quiet': True
         },
         "generic_audio_no_preferred_quality": {
@@ -119,7 +119,7 @@ def download_video(url, output_directory, video_quality, file_format, main_windo
                 'preferredcodec': file_format,
             }],
             'merge_output_format': file_format,
-            'outtmpl': output_directory + '/%(title)s.%(ext)s',
+            'outtmpl': f'{output_directory}/%(title)s.%(ext)s',
             'quiet': True
         },
         "vorbis": {
@@ -130,7 +130,7 @@ def download_video(url, output_directory, video_quality, file_format, main_windo
                 'preferredcodec': 'vorbis',
             }],
             'merge_output_format': file_format,
-            'outtmpl': output_directory + '/%(title)s.%(ext)s',
+            'outtmpl': f'{output_directory}/%(title)s.%(ext)s',
             'quiet': True
         }
     }
