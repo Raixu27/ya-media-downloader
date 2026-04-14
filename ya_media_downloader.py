@@ -137,7 +137,7 @@ class DownloadItems(QObject):
                 downloaded_items += 1
             except:
                 self.error_message.emit(
-                    f"{yt_dlp_wrapper.get_title(info)} couldn't be downloaded. This item will be skipped and the others will still attempt to download.")
+                    f"{yt_dlp_wrapper.get_title(info)} couldn't be downloaded. The other items will still attempt to download.")
             self.remove_item_signal.emit(i, True)
         self.clear_item_list.emit()
         self.update_progress_bar.emit(0)

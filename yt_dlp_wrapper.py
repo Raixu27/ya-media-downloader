@@ -156,3 +156,4 @@ def download_video(url, output_directory, video_quality, file_format, main_windo
             f"The video at {url} has successfully been downloaded as a .{file_format} file in {output_directory} at {video_quality}p quality.")
     except:
         print(f"Uh oh! An error occurred downloading the video at {url}")
+        raise Exception
