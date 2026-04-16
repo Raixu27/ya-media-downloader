@@ -9,7 +9,8 @@ def get_info(url) -> dict:
             return ydl.extract_info(url, download=False)
     except:
         print(
-            "Failed to fetch info from URL! This is probably caused by you being blocked due to the website thinking you are a bot or entering the incorrect URL. Are you using a VPN?")
+            "Failed to fetch info from URL! This is probably caused by you being blocked due to the website thinking "
+            "you are a bot or entering the incorrect URL. Are you using a VPN?")
         raise Exception("Failed to fetch info from URL")
 
 
@@ -17,7 +18,7 @@ def get_url(info) -> str:
     """Returns the video/playlist URL."""
     try:
         return info["webpage_url"]
-    except:
+    except KeyError:
         print("Error occurred while fetching the URL in yt_dlp_wrapper.get_url()")
         return ""
 
@@ -26,7 +27,7 @@ def get_title(info) -> str:
     """Returns the title of the video/playlist"""
     try:
         return info['title']
-    except:
+    except KeyError:
         print("Error occurred while fetching the title in yt_dlp_wrapper.get_title()")
         return ""
 
@@ -35,7 +36,7 @@ def get_duration(info) -> int:
     """Returns the duration of the video in seconds"""
     try:
         return int(info['duration'])
-    except:
+    except KeyError:
         print("Error occurred while fetching the duration in yt_dlp_wrapper.get_duration()")
         return 0
 
@@ -44,7 +45,7 @@ def get_id(info) -> str:
     """Returns the ID of the video/playlist"""
     try:
         return info['id']
-    except:
+    except KeyError:
         print("Error occurred while fetching the ID in yt_dlp_wrapper.get_id()")
         return ""
 
@@ -53,18 +54,14 @@ def get_uploader_id(info) -> str:
     """Returns the channel name that uploaded the video/playlist"""
     try:
         return info['uploader_id']
-    except:
+    except KeyError:
         print("Error occurred while fetching the uploader id in yt_dlp_wrapper.get_uploader_id()")
         return ""
 
 
 def is_playlist(info) -> bool:
     """Returns True if the provided info is a playlist, and False if it is not."""
-    try:
-        return 'entries' in info
-    except:
-        print("Error occurred in yt_dlp_wrapper.is_playlist()")
-        return False
+    return 'entries' in info
 
 
 def download_video(url, output_directory, video_quality, file_format, main_window) -> None:
@@ -156,4 +153,4 @@ def download_video(url, output_directory, video_quality, file_format, main_windo
             f"The video at {url} has successfully been downloaded as a .{file_format} file in {output_directory} at {video_quality}p quality.")
     except:
         print(f"Uh oh! An error occurred downloading the video at {url}")
-        raise Exception
+        raise Exception("An error occurred downloading the video")

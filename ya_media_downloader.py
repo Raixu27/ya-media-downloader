@@ -7,7 +7,6 @@ from re import sub
 from time import time
 from PySide6.QtWidgets import (QApplication, QFileDialog, QMessageBox)
 from PySide6.QtCore import (QThread, QObject, Signal, Slot, QEventLoop)
-import constants
 import ui
 import yt_dlp_wrapper
 
@@ -53,7 +52,7 @@ class AddItem(QObject):
 
         try:
             info = yt_dlp_wrapper.get_info(_url)
-        except:
+        except Exception("Failed to fetch info from URL"):
             adding = False
             self.error_message.emit(
                 f"The URL ({_url}) couldn't be added. This could be caused by your IP being blocked by the website. Did you enter the correct URL?")
@@ -135,9 +134,10 @@ class DownloadItems(QObject):
                 self.update_progress_bar.emit(0)
                 yt_dlp_wrapper.download_video(_url, output_directory, video_quality, file_format, main_window)
                 downloaded_items += 1
-            except:
+            except Exception("An error occurred downloading the video"):
                 self.error_message.emit(
-                    f"{yt_dlp_wrapper.get_title(info)} couldn't be downloaded. The other items will still attempt to download.")
+                    f"{yt_dlp_wrapper.get_title(info)} couldn't be downloaded. The other items will still attempt to "
+                    "download.")
             self.remove_item_signal.emit(i, True)
         self.clear_item_list.emit()
         self.update_progress_bar.emit(0)
@@ -159,52 +159,53 @@ def install_ffmpeg() -> None:
              '--disable-interactivity'])
         main_window.show_info("FFmpeg successfully installed.")
         return
-    except:
+    except subprocess.CalledProcessError:
         pass
     try:  # MacOS
         subprocess.check_call(['brew', 'install', '-y', 'ffmpeg'])
         main_window.show_info("FFmpeg successfully installed.")
         return
-    except:
+    except subprocess.CalledProcessError:
         pass
     try:  # Arch Linux
         subprocess.check_call(['pkexec', 'pacman', '--noconfirm', '-S', 'ffmpeg'])
         main_window.show_info("FFmpeg successfully installed.")
         return
-    except:
+    except subprocess.CalledProcessError:
         pass
     try:  # Debian Linux/Ubuntu
         subprocess.check_call(['pkexec', 'apt', '-y', 'install', 'ffmpeg'])
         main_window.show_info("FFmpeg successfully installed.")
         return
-    except:
+    except subprocess.CalledProcessError:
         pass
     try:  # Fedora Linux
         subprocess.check_call(['pkexec', 'dnf', '--assumeyes', 'install', 'ffmpeg'])
         main_window.show_info("FFmpeg successfully installed.")
         return
-    except:
+    except subprocess.CalledProcessError:
         pass
     try:  # Void Linux
         subprocess.check_call(['pkexec', 'xbps-install', '-y', 'ffmpeg'])
         main_window.show_info("FFmpeg successfully installed.")
         return
-    except:
+    except subprocess.CalledProcessError:
         pass
     try:  # Alpine Linux
         subprocess.check_call(['pkexec', 'apk', '-y', 'add', 'ffmpeg'])
         main_window.show_info("FFmpeg successfully installed.")
         return
-    except:
+    except subprocess.CalledProcessError:
         pass
     try:  # openSUSE
         subprocess.check_call(['pkexec', 'zypper', '-n', 'install', 'ffmpeg'])
         main_window.show_info("FFmpeg successfully installed.")
         return
-    except:
+    except subprocess.CalledProcessError:
         pass
 
     main_window.show_error("FFmpeg failed to install. Your files may not download in the correct file format!")
+    raise Exception("FFmpeg install failure")
 
 
 def ffmpeg_prompt() -> None:
@@ -218,7 +219,7 @@ def ffmpeg_prompt() -> None:
     if result == QMessageBox.Yes:
         try:
             install_ffmpeg()
-        except:
+        except Exception("FFmpeg install failure"):
             main_window.show_error("FFmpeg failed to install. Your files may not download in the correct file format!")
 
 
@@ -340,7 +341,7 @@ def import_url_list() -> None:
     main_window.item_list.clear()
     added_videos.clear()
     with open(exported_url_list[0], "r") as file:
-        lines = sum(1 for line in file)
+        lines = sum(1 for _ in file)
         if lines >= 10:
             result = QMessageBox.warning(
                 main_window,
