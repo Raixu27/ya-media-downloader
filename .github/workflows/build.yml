@@ -36,6 +36,7 @@ jobs:
           enable-plugins: pyside6
           nofollow-import-to: yt_dlp.extractor.lazy_extractors
           include-data-dir: ./assets=assets
+          include-data-files: ./config/settings.json=config/settings.json
           windows-icon-from-ico: ./assets/icon.ico
           windows-console-mode: disable
 

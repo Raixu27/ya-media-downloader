@@ -1,6 +1,7 @@
 # | ---- Imports ---- | #
 
 import sys
+import json
 import subprocess
 import webbrowser
 from re import sub
@@ -14,12 +15,19 @@ import yt_dlp_wrapper
 
 main_window = None
 about_window = None
+settings_window = None
 added_videos = {}
 num_of_added_items = 0
 url = ""
-output_directory = ""
-video_quality = "1080"
-file_format = "mp4"
+settings = {
+    "settings_format": 1,
+    "audio_bitrate": "320",
+    "bandwidth_limit": 0,
+    "file_format": "mp4",
+    "output_directory": "",
+    "subtitles": "False",
+    "video_quality": "1080"
+}
 downloading = False
 adding = False
 
@@ -95,7 +103,7 @@ class DownloadItems(QObject):
 
     @Slot()
     def run(self):
-        global added_videos, output_directory, video_quality, file_format, downloading, adding
+        global added_videos, settings, downloading, adding
         if downloading:
             self.finished.emit()
             return
@@ -114,13 +122,13 @@ class DownloadItems(QObject):
             self.finished.emit()
             return
 
-        if output_directory == "":
+        if settings["output_directory"] == "":
             self.error_message.emit("No output directory was selected. Please select an output directory.")
             downloading = False
             self.finished.emit()
             return
 
-        if file_format == "gif" and (video_quality == "240" or video_quality == "144"):
+        if settings["file_format"] == "gif" and (settings["video_quality"] == "240" or settings["video_quality"] == "144"):
             self.error_message.emit(
                 ".gif file format must be at least 360p. Please set your video quality to 360p or higher.")
             downloading = False
@@ -132,7 +140,7 @@ class DownloadItems(QObject):
             _url = yt_dlp_wrapper.get_url(info)
             try:
                 self.update_progress_bar.emit(0)
-                yt_dlp_wrapper.download_video(_url, output_directory, video_quality, file_format, main_window)
+                yt_dlp_wrapper.download_video(_url, settings, main_window)
                 downloaded_items += 1
             except Exception("An error occurred downloading the video"):
                 self.error_message.emit(
@@ -223,6 +231,29 @@ def ffmpeg_prompt() -> None:
             main_window.show_error("FFmpeg failed to install. Your files may not download in the correct file format!")
 
 
+def load_settings() -> None:
+    global settings, main_window, settings_window
+
+    def fallback():
+        main_window.show_warning("The settings file is invalid or doesn't exist. Your settings will be reset to the defaults.")
+        with open("config/settings.json", "w") as _file:
+            json.dump(settings, _file, indent=4)
+
+    try:
+        with open("config/settings.json", "r") as file:
+            try:
+                settings = json.load(file)
+            except ValueError:
+                fallback()
+    except FileNotFoundError:
+        fallback()
+
+    ui.update_ui(main_window, settings_window)
+
+def save_settings() -> None:
+    with open("config/settings.json", "w") as file:
+        json.dump(settings, file, indent=4)
+
 # | -- Manage items -- | #
 
 def remove_item(index, remove_highest, delete_item_from_added_videos) -> None:
@@ -262,7 +293,7 @@ def remove_item_on_activate(item) -> None:
 
 def update_output_directory() -> None:
     """Lets the user choose where to output downloaded videos."""
-    global output_directory, downloading, main_window
+    global settings, downloading, main_window
 
     if downloading:
         main_window.show_error(
@@ -271,21 +302,46 @@ def update_output_directory() -> None:
 
     directory = QFileDialog.getExistingDirectory(main_window, main_window.tr("Open Directory"))
     if directory != "":
-        output_directory = directory
-        main_window.output_label.setText(f"Output directory: {output_directory}")
+        settings["output_directory"] = directory
+        main_window.output_label.setText(f"Output directory: {settings["output_directory"]}")
 
 
 def update_file_format(text) -> None:
-    """Sets the file_format variable from the chosen option in the dropdown menu."""
-    global file_format
-    file_format = text.replace('.', '')
+    """Sets the file_format setting from the chosen option in the dropdown menu."""
+    global settings
+    settings["file_format"] = text.replace('.', '')
 
 
 def update_video_quality(text) -> None:
-    """Sets the video_quality variable from the chosen option in the dropdown menu."""
-    global video_quality
-    video_quality = sub("[^0-9]", "", text)
+    """Sets the video_quality setting from the chosen option in the dropdown menu."""
+    global settings
+    settings["video_quality"] = sub("[^0-9]", "", text)
 
+
+def update_audio_bitrate(text) -> None:
+    """Sets the audio_bitrate setting from the chosen option in the dropdown menu in the settings window."""
+    global settings
+    settings["audio_bitrate"] = sub("[^0-9]", "", text)
+
+def update_bandwidth_limit(text) -> None:
+    """Sets the bandwidth_limit setting from the chosen option in the dropdown menu in the settings window."""
+    if text == "":
+        return
+
+    try:
+        settings["bandwidth_limit"] = int(text)
+    except ValueError:
+        settings["bandwidth_limit"] = 0
+        settings_window.bandwidth_limit_edit.setText("")
+        QMessageBox.critical(
+            settings_window,
+            "Error",
+            "The bandwidth limit must be a positive integer.",
+        )
+
+def update_subtitles(checked) -> None:
+    global settings
+    settings["subtitles"] = str(checked)
 
 def update_url(text) -> None:
     """Used for setting the url variable to the text in the UI."""
@@ -439,16 +495,20 @@ def start_thread(worker):
 
 def main() -> None:
     """Main function, called from main.py"""
-    global url, added_videos, output_directory, video_quality, file_format, main_window, about_window
+    global url, added_videos, settings, main_window, about_window, settings_window
 
     app = QApplication(sys.argv)
     main_window = ui.MainWindow()
     about_window = ui.AboutWindow()
+    settings_window = ui.SettingsWindow()
     main_window.show()
+
+    load_settings()
 
     if not check_for_ffmpeg():
         ffmpeg_prompt()
 
+    # Main window
     main_window.url_editor.textChanged.connect(update_url)
     main_window.url_button.clicked.connect(lambda: start_thread(AddItem()))
     main_window.browse_button.clicked.connect(update_output_directory)
@@ -459,12 +519,18 @@ def main() -> None:
     main_window.export_url_list.triggered.connect(export_url_list)
     main_window.import_url_list.triggered.connect(import_url_list)
     main_window.about_action.triggered.connect(about_window.show)
+    main_window.settings_action.triggered.connect(settings_window.show)
 
+    # About window
     about_window.github_button.clicked.connect(
         lambda: webbrowser.open("https://github.com/Raixu27/ya-media-downloader"))
     about_window.github_releases_button.clicked.connect(
         lambda: webbrowser.open("https://github.com/Raixu27/ya-media-downloader/releases"))
 
+    # Settings window
+    settings_window.audio_bitrate_combo.currentTextChanged.connect(update_audio_bitrate)
+    settings_window.bandwidth_limit_edit.textChanged.connect(update_bandwidth_limit)
+    settings_window.subtitles_checkbox.clicked.connect(update_subtitles)
     sys.exit(app.exec())
 
 
