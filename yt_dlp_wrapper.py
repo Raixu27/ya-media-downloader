@@ -64,7 +64,7 @@ def is_playlist(info) -> bool:
     return 'entries' in info
 
 
-def download_video(url, output_directory, video_quality, file_format, main_window) -> None:
+def download_video(url, settings, main_window) -> None:
     """Downloads a video from the URL."""
 
     def progress_hook(d) -> None:
@@ -80,44 +80,52 @@ def download_video(url, output_directory, video_quality, file_format, main_windo
     ydl_opts = {
         "generic_video": {
             'progress_hooks': [progress_hook],
-            'format': f'bestvideo[height<={video_quality}]+bestaudio/best',
-            'merge_output_format': file_format,
-            'outtmpl': f'{output_directory}/%(title)s.%(ext)s',
-            'quiet': True
+            'format': f'bestvideo[height<={settings["video_quality"]}]+bestaudio/best',
+            'merge_output_format': settings["file_format"],
+            'outtmpl': f'{settings["output_directory"]}/%(title)s.%(ext)s',
+            'quiet': True,
+            'ratelimit': settings["bandwidth_limit"]*1000,
+            "writesubtitles": settings["subtitles"] == "True",
+            "writeautomaticsub": settings["subtitles"] == "True",
+            "subtitleslangs": ["en"],
+            "subtitlesformat": "vtt"
         },
         "gif": {
             'progress_hooks': [progress_hook],
-            'format': f'bestvideo[height<={video_quality}]',
+            'format': f'bestvideo[height<={settings["video_quality"]}]',
             "postprocessors": [{
                 "key": "FFmpegVideoConvertor",
                 "preferedformat": "gif",
             }],
             'merge_output_format': 'gif',
-            'outtmpl': f'{output_directory}/%(title)s.%(ext)s',
-            'quiet': True
+            'outtmpl': f'{settings["output_directory"]}/%(title)s.%(ext)s',
+            'quiet': True,
+            'ratelimit': settings["bandwidth_limit"]*1000
         },
         "generic_audio": {
             'progress_hooks': [progress_hook],
             'format': 'bestaudio/best',
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
-                'preferredcodec': file_format,
-                'preferredquality': '320',
+                'preferredcodec': settings["file_format"],
+                'preferredquality': settings["audio_bitrate"],
             }],
-            'merge_output_format': file_format,
-            'outtmpl': f'{output_directory}/%(title)s.%(ext)s',
-            'quiet': True
+            'merge_output_format': settings["file_format"],
+            'outtmpl': f'{settings["output_directory"]}/%(title)s.%(ext)s',
+            'quiet': True,
+            'ratelimit': settings["bandwidth_limit"]*1000
         },
         "generic_audio_no_preferred_quality": {
             'progress_hooks': [progress_hook],
             'format': 'bestaudio/best',
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
-                'preferredcodec': file_format,
+                'preferredcodec': settings["file_format"],
             }],
-            'merge_output_format': file_format,
-            'outtmpl': f'{output_directory}/%(title)s.%(ext)s',
-            'quiet': True
+            'merge_output_format': settings["file_format"],
+            'outtmpl': f'{settings["output_directory"]}/%(title)s.%(ext)s',
+            'quiet': True,
+            'ratelimit': settings["bandwidth_limit"]*1000
         },
         "vorbis": {
             'progress_hooks': [progress_hook],
@@ -126,9 +134,10 @@ def download_video(url, output_directory, video_quality, file_format, main_windo
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'vorbis',
             }],
-            'merge_output_format': file_format,
-            'outtmpl': f'{output_directory}/%(title)s.%(ext)s',
-            'quiet': True
+            'merge_output_format': settings["file_format"],
+            'outtmpl': f'{settings["output_directory"]}/%(title)s.%(ext)s',
+            'quiet': True,
+            'ratelimit': settings["bandwidth_limit"]*1000
         }
     }
 
@@ -147,10 +156,14 @@ def download_video(url, output_directory, video_quality, file_format, main_windo
     # | -- Download the video :) -- | #
     try:
         print(f"Downloading video {url}")
-        with YoutubeDL(ydl_opts_filetypes[file_format]) as ydl:
+
+        if ydl_opts_filetypes[settings["file_format"]]["ratelimit"] <= 0:
+            ydl_opts_filetypes[settings["file_format"]]["ratelimit"] = None
+
+        with YoutubeDL(ydl_opts_filetypes[settings["file_format"]]) as ydl:
             ydl.download([url])
         print(
-            f"The video at {url} has successfully been downloaded as a .{file_format} file in {output_directory} at {video_quality}p quality.")
+            f"The video at {url} has successfully been downloaded as a .{settings["file_format"]} file in {settings["output_directory"]} at {settings["video_quality"]}p quality.")
     except:
         print(f"Uh oh! An error occurred downloading the video at {url}")
         raise Exception("An error occurred downloading the video")
